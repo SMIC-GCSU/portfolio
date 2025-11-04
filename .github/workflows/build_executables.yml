@@ -30,7 +30,9 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
     
-    - name: Create data directory
+    - name: Create data directory (Linux/macOS)
+      if: runner.os != 'Windows'
+      shell: bash
       run: |
         mkdir -p data
         # Create empty transactions.csv if it doesn't exist
@@ -38,8 +40,18 @@ jobs:
           echo "ticker,sector,invest_date,amount_invested,shares" > data/transactions.csv
         fi
     
+    - name: Create data directory (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        if (-not (Test-Path data)) { New-Item -ItemType Directory -Path data }
+        if (-not (Test-Path data/transactions.csv)) {
+          "ticker,sector,invest_date,amount_invested,shares" | Out-File -FilePath data/transactions.csv -Encoding utf8
+        }
+    
     - name: Build executable (Linux/macOS)
       if: runner.os != 'Windows'
+      shell: bash
       run: |
         pyinstaller \
           --onefile \
@@ -77,6 +89,7 @@ jobs:
     
     - name: Build executable (Windows)
       if: runner.os == 'Windows'
+      shell: pwsh
       run: |
         pyinstaller `
           --onefile `
@@ -141,15 +154,22 @@ jobs:
         name: SMIC_Portfolio_Analysis-${{ runner.os }}
         path: ${{ steps.filename.outputs.path }}
         retention-days: 30
-    
-    - name: Create release (on tag)
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          dist/SMIC_Portfolio_Analysis.exe
-          dist/SMIC_Portfolio_Analysis
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
