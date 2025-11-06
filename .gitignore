@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Build artifacts
+build/
+dist/
+*.spec.bak
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data (keep structure, ignore generated files)
+data/*.csv
+!data/transactions.csv
+
+# Generated figures
+figs/
+*.png
+*.jpg
+*.pdf
+
+# Environment
+venv/
+env/
+ENV/
+
+# Logs
+*.log
+
