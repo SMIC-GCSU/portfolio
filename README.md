@@ -1,6 +1,6 @@
 # SMIC Portfolio Analysis
 
-Official portfolio analysis and tracking software for managing the university endowment fund of the Student Managed Investment Committee (SMIC) at Georgia College & State University. This application provides comprehensive portfolio performance analysis, sector allocation tracking, and interactive visualizations for the management of institutional investment assets.
+Official portfolio analysis and tracking software developed as a service to the Student Managed Investment Committee (SMIC) at Georgia College & State University for managing the university endowment fund. This application provides comprehensive portfolio performance analysis, sector allocation tracking, and interactive visualizations for the management of institutional investment assets.
 
 ## Project Overview
 
@@ -21,7 +21,7 @@ The SMIC Portfolio Analysis system simulates a portfolio that starts with 100% V
 
 The portfolio simulation follows a realistic drift model:
 
-1. **Initial State**: Portfolio starts with 100% allocation to 11 Vanguard sector ETFs, equal-weighted (9.09% each)
+1. **Initial State**: Portfolio starts with an initial allocation across 11 Vanguard sector ETFs, fixed income securities, and cash. The sector ETFs are not equal-weighted; allocation percentages are determined by the initial investment amounts on the portfolio start date (August 27, 2024). The initial portfolio value is approximately $100,594, with sector allocations ranging from approximately 1.5% to 16% per sector, plus fixed income and cash positions.
 2. **ETF-to-Stock Swaps**: When a stock is purchased:
    - The corresponding sector ETF is sold (dollar-neutral swap)
    - The stock is purchased with the same dollar amount
