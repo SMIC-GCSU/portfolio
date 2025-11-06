@@ -1,12 +1,12 @@
 # SMIC Portfolio Analysis
 
-A professional portfolio analysis and tracking system for the Student Managed Investment Club (SMIC) at Georgia College & State University. This application provides comprehensive portfolio performance analysis, sector allocation tracking, and interactive visualizations.
+Open source portfolio analysis and tracking software built by Joel Saucedo for the Student Managed Investment Committee (SMIC) at Georgia College & State University. This application provides comprehensive portfolio performance analysis, sector allocation tracking, and interactive visualizations for managing the university endowment fund with an initial investment of $100,000.
 
-## 🎯 Project Overview
+## Project Overview
 
 The SMIC Portfolio Analysis system simulates a portfolio that starts with 100% Vanguard sector ETFs (equal-weighted across 11 sectors) and allows strategic swaps from ETFs to individual stocks within each sector. The system tracks portfolio performance, sector drift, and provides detailed analytics against the S&P 500 benchmark.
 
-## ✨ Key Features
+## Key Features
 
 - **Portfolio Simulation**: Realistic modeling of ETF-to-stock swaps with natural sector weight drift
 - **Performance Analytics**: Comprehensive metrics including CAGR, total returns, drawdowns, and sector allocation changes
@@ -15,13 +15,13 @@ The SMIC Portfolio Analysis system simulates a portfolio that starts with 100% V
 - **Automated Builds**: CI/CD pipeline via GitHub Actions for all platforms
 - **Transaction Management**: Easy-to-use GUI for adding and managing portfolio transactions
 
-## 📊 Mathematical Model
+## Mathematical Model
 
 ### Portfolio Construction
 
 The portfolio simulation follows a realistic drift model:
 
-1. **Initial State**: Portfolio starts with 100% allocation to 11 Vanguard sector ETFs, equal-weighted (9.09% each)
+1. **Initial State**: Portfolio starts with 100% allocation to 11 Vanguard sector ETFs, equal-weighted (9.09% each), representing the initial $100,000 university endowment investment
 2. **ETF-to-Stock Swaps**: When a stock is purchased:
    - The corresponding sector ETF is sold (dollar-neutral swap)
    - The stock is purchased with the same dollar amount
@@ -66,27 +66,27 @@ Benchmark_Value(t) = (S&P500_Price(t) / S&P500_Price(0)) × Initial_Portfolio_Va
 
 This allows for direct dollar-for-dollar comparison while maintaining percentage return accuracy.
 
-## 🏆 Project Successes
+## Project Achievements
 
 ### Technical Achievements
 
-✅ **Automated Cross-Platform Builds**: Successfully implemented GitHub Actions workflows that automatically build executables for Windows, macOS, and Linux on every push
+**Automated Cross-Platform Builds**: Successfully implemented GitHub Actions workflows that automatically build executables for Windows, macOS, and Linux on every push
 
-✅ **Professional GUI Application**: Developed a polished PySide6-based desktop application with interactive Plotly visualizations
+**Professional GUI Application**: Developed a polished PySide6-based desktop application with interactive Plotly visualizations
 
-✅ **Accurate Portfolio Simulation**: Implemented realistic portfolio modeling with proper handling of:
+**Accurate Portfolio Simulation**: Implemented realistic portfolio modeling with proper handling of:
 - ETF-to-stock swaps
 - Natural sector weight drift
 - Cash and fixed income allocations
 - Daily portfolio valuation
 
-✅ **Comprehensive Analytics**: Built robust analysis engine that calculates:
+**Comprehensive Analytics**: Built robust analysis engine that calculates:
 - Portfolio performance metrics (CAGR, total returns, drawdowns)
 - Sector allocation tracking over time
 - ETF vs. individual stock breakdowns
 - YTD and full-period comparisons
 
-✅ **Production-Ready Packaging**: Created PyInstaller spec file with proper dependency collection, resulting in self-contained executables (~300-400MB)
+**Production-Ready Packaging**: Created PyInstaller spec file with proper dependency collection, resulting in self-contained executables (~300-400MB)
 
 ### Performance Metrics
 
@@ -94,7 +94,7 @@ This allows for direct dollar-for-dollar comparison while maintaining percentage
 - **Code Quality**: Modular architecture with separation of concerns (GUI, analysis, data)
 - **User Experience**: Intuitive interface with real-time analysis and interactive charts
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -126,7 +126,7 @@ Download the latest executables from [GitHub Actions](https://github.com/joel-sa
 - Extract and run the executable for your platform
 - No Python installation required!
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 SMIC/
@@ -144,7 +144,7 @@ SMIC/
 └── build_executable*.sh     # Platform-specific build scripts
 ```
 
-## 🔧 Development
+## Development
 
 ### Building Executables Locally
 
@@ -169,7 +169,7 @@ report, figures, summary_df, ytd_df = generate_portfolio_analysis()
 print(report)
 ```
 
-## 🔮 Future Development
+## Future Development
 
 We are actively working on implementing the following features to enhance the portfolio management capabilities:
 
@@ -199,24 +199,30 @@ We are actively working on implementing the following features to enhance the po
 
 We welcome contributions! Please see our development guidelines and feel free to submit pull requests or open issues for bugs and feature requests.
 
-## 📚 Documentation
+## Documentation
 
 - **Packaging Guide**: See `PACKAGING.md` for detailed instructions on building executables
 - **API Documentation**: Code is well-commented with docstrings explaining key functions
 - **Workflow Documentation**: GitHub Actions workflows are documented inline
 
-## 📄 License
+## License
 
-This project is for educational and internal use by the Student Managed Investment Club at Georgia College & State University.
+This project is open source software developed for the Student Managed Investment Committee at Georgia College & State University. See LICENSE file for details.
 
-## 🙏 Acknowledgments
+## Author
+
+**Joel Saucedo**  
+Developer and maintainer of SMIC Portfolio Analysis
+
+## Acknowledgments
 
 - **Vanguard ETFs**: Sector-based ETF tracking
 - **yfinance**: Market data retrieval
 - **Plotly**: Interactive visualizations
 - **PySide6**: Cross-platform GUI framework
+- **Student Managed Investment Committee**: Georgia College & State University
 
-## 📞 Support
+## Support
 
 For questions, issues, or contributions, please visit the [GitHub repository](https://github.com/joel-saucedo/SMIC-Portfolio-Analysis) or contact the development team.
 
