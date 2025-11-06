@@ -11,6 +11,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import os
 from typing import Tuple, Dict, List
+from datetime import datetime
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -60,7 +61,173 @@ SECTOR_COLORS = {
 }
 
 
-def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv') -> Tuple[str, Dict, pd.DataFrame, pd.DataFrame]:
+def generate_comparison_plot(returns_data: Dict, sector: str = None, comparison_type: str = 'ETF_vs_Stocks', period: str = 'General', transaction_dates: Dict = None) -> go.Figure:
+    """
+    Generate comparison plot with ETF as benchmark, showing excess returns and entry points.
+    
+    Args:
+        returns_data: Dictionary containing all returns data
+        sector: Sector name (for ETF vs Stocks comparison) or None (for Equity vs S&P 500)
+        comparison_type: 'ETF_vs_Stocks' or 'Equity_vs_SP500'
+        period: 'General' (since beginning) or 'YTD' (year to date)
+        transaction_dates: Dictionary mapping sectors to lists of transaction dates
+    
+    Returns:
+        Plotly figure object
+    """
+    fig = go.Figure()
+    title = "Returns Comparison"
+    transaction_dates = transaction_dates or {}
+    
+    if comparison_type == 'ETF_vs_Stocks':
+        # ETF is the benchmark (standalone), Sector aggregate (ETF + stocks) is the portfolio
+        if sector and sector in returns_data['sector_returns']:
+            if period == 'General':
+                benchmark_returns = returns_data['sector_returns'][sector]['ETF_Benchmark']
+                portfolio_returns = returns_data['sector_returns'][sector]['Sector_Aggregate']
+                title = f'{sector}: Sector Aggregate vs ETF Benchmark (Since Beginning)'
+            else:  # YTD
+                benchmark_returns = returns_data['sector_ytd_returns'][sector]['ETF_Benchmark']
+                portfolio_returns = returns_data['sector_ytd_returns'][sector]['Sector_Aggregate']
+                title = f'{sector}: Sector Aggregate vs ETF Benchmark (YTD)'
+        else:
+            # Default to first available sector
+            available_sectors = list(returns_data['sector_returns'].keys())
+            if available_sectors:
+                sector = available_sectors[0]
+                if period == 'General':
+                    benchmark_returns = returns_data['sector_returns'][sector]['ETF_Benchmark']
+                    portfolio_returns = returns_data['sector_returns'][sector]['Sector_Aggregate']
+                    title = f'{sector}: Sector Aggregate vs ETF Benchmark (Since Beginning)'
+                else:
+                    benchmark_returns = returns_data['sector_ytd_returns'][sector]['ETF_Benchmark']
+                    portfolio_returns = returns_data['sector_ytd_returns'][sector]['Sector_Aggregate']
+                    title = f'{sector}: Sector Aggregate vs ETF Benchmark (YTD)'
+            else:
+                return fig
+        
+        # Calculate excess returns (active returns)
+        excess_returns = portfolio_returns - benchmark_returns
+        final_excess = excess_returns.iloc[-1] if len(excess_returns) > 0 else 0
+        
+        # Plot benchmark (ETF)
+        fig.add_trace(go.Scatter(
+            x=benchmark_returns.index,
+            y=benchmark_returns.values,
+            name=f'{sector} ETF (Benchmark)',
+            line=dict(color='#2E86AB', width=2, dash='dash'),
+            mode='lines'
+        ))
+        
+        # Plot portfolio (Sector Aggregate: ETF + stocks)
+        fig.add_trace(go.Scatter(
+            x=portfolio_returns.index,
+            y=portfolio_returns.values,
+            name=f'{sector} Sector Aggregate (Portfolio) | Excess: {final_excess:.2f}%',
+            line=dict(color='#F18F01', width=3),
+            mode='lines'
+        ))
+        
+        # Mark entry points for this sector
+        if sector in transaction_dates:
+            entry_dates = transaction_dates[sector]
+            for entry_date in entry_dates:
+                # Find nearest date in returns index
+                if period == 'General':
+                    date_series = portfolio_returns.index
+                else:
+                    date_series = portfolio_returns.index
+                
+                # Find closest date
+                try:
+                    date_idx = date_series.get_indexer([pd.Timestamp(entry_date)], method='nearest')[0]
+                    if date_idx >= 0 and date_idx < len(date_series):
+                        entry_idx = date_series[date_idx]
+                        if entry_idx in portfolio_returns.index:
+                            entry_return = portfolio_returns.loc[entry_idx]
+                            fig.add_trace(go.Scatter(
+                                x=[entry_idx],
+                                y=[entry_return],
+                                mode='markers',
+                                marker=dict(symbol='triangle-up', size=12, color='#FF0000', line=dict(width=2, color='white')),
+                                name=f'Entry: {pd.Timestamp(entry_date).strftime("%Y-%m-%d")}',
+                                showlegend=False,
+                                hovertemplate=f'Entry Date: {pd.Timestamp(entry_date).strftime("%Y-%m-%d")}<br>Return: %{{y:.2f}}%<extra></extra>'
+                            ))
+                except:
+                    pass
+    
+    elif comparison_type == 'Equity_vs_SP500':
+        # S&P 500 is the benchmark, Equity portfolio is the portfolio
+        if period == 'General':
+            portfolio_returns = returns_data['equity_returns']
+            benchmark_returns = returns_data['benchmark_returns']
+            title = 'Equity Portfolio vs S&P 500 Benchmark (Since Beginning)'
+        else:  # YTD
+            portfolio_returns = returns_data['equity_ytd_returns']
+            benchmark_returns = returns_data['benchmark_ytd_returns']
+            title = 'Equity Portfolio vs S&P 500 Benchmark (YTD)'
+        
+        # Calculate excess returns (active returns)
+        excess_returns = portfolio_returns - benchmark_returns
+        final_excess = excess_returns.iloc[-1] if len(excess_returns) > 0 else 0
+        
+        # Plot benchmark (S&P 500)
+        fig.add_trace(go.Scatter(
+            x=benchmark_returns.index,
+            y=benchmark_returns.values,
+            name='S&P 500 (Benchmark)',
+            line=dict(color='#d62728', width=2, dash='dash'),
+            mode='lines'
+        ))
+        
+        # Plot portfolio (Equity)
+        fig.add_trace(go.Scatter(
+            x=portfolio_returns.index,
+            y=portfolio_returns.values,
+            name=f'Equity Portfolio | Excess: {final_excess:.2f}%',
+            line=dict(color='#1f77b4', width=3),
+            mode='lines'
+        ))
+        
+        # Mark all entry points across all sectors
+        all_entry_dates = []
+        for sec, dates in transaction_dates.items():
+            all_entry_dates.extend(dates)
+        all_entry_dates = sorted(set(all_entry_dates))
+        
+        for entry_date in all_entry_dates:
+            try:
+                date_idx = portfolio_returns.index.get_indexer([pd.Timestamp(entry_date)], method='nearest')[0]
+                if date_idx >= 0 and date_idx < len(portfolio_returns.index):
+                    entry_idx = portfolio_returns.index[date_idx]
+                    if entry_idx in portfolio_returns.index:
+                        entry_return = portfolio_returns.loc[entry_idx]
+                        fig.add_trace(go.Scatter(
+                            x=[entry_idx],
+                            y=[entry_return],
+                            mode='markers',
+                            marker=dict(symbol='triangle-up', size=12, color='#FF0000', line=dict(width=2, color='white')),
+                            name=f'Entry: {pd.Timestamp(entry_date).strftime("%Y-%m-%d")}',
+                            showlegend=False,
+                            hovertemplate=f'Entry Date: {pd.Timestamp(entry_date).strftime("%Y-%m-%d")}<br>Return: %{{y:.2f}}%<extra></extra>'
+                        ))
+            except:
+                pass
+    
+    fig.update_layout(
+        title=title,
+        xaxis_title='Date',
+        yaxis_title='Cumulative Return (%)',
+        hovermode='x unified',
+        height=600,
+        showlegend=True
+    )
+    
+    return fig
+
+
+def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv') -> Tuple[str, Dict, pd.DataFrame, pd.DataFrame, Dict]:
     """
     Main analysis function - generates portfolio analysis and returns results
     
@@ -88,10 +255,13 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
     # Determine start date
     start_date = df['invest_date'].min()
     
+    # Use present day as end date
+    end_date = pd.Timestamp.now().normalize()
+    
     # Download prices
     all_tickers = list(set(df['ticker'].tolist()) | set(V.values()) | {'^GSPC'})
     try:
-        px = yf.download(all_tickers, start=start_date - pd.Timedelta(days=10), end='2025-11-05',
+        px = yf.download(all_tickers, start=start_date - pd.Timedelta(days=10), end=end_date,
                          progress=False, auto_adjust=False)['Adj Close'].asfreq('B').ffill()
         if px.empty:
             raise ValueError("No price data downloaded")
@@ -105,6 +275,9 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
     
     # Initialize units
     units = pd.DataFrame(0.0, index=px.index, columns=px.columns)
+    
+    # Track transaction dates by sector (for stock entries only, not ETFs)
+    transaction_dates_by_sector = {}
     
     # Process each position
     df_sorted = df.sort_values('invest_date')
@@ -155,6 +328,11 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
                 etf = V[sector_key]
                 if etf in px.columns:
                     etf_price = px.loc[dt, etf]
+                    
+                    # Track transaction date for this stock entry
+                    if sector_key not in transaction_dates_by_sector:
+                        transaction_dates_by_sector[sector_key] = []
+                    transaction_dates_by_sector[sector_key].append(row['invest_date'])
                     
                     # Buy stock
                     if shares > 0:
@@ -358,6 +536,127 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
     }
     summary_df = pd.DataFrame(summary_data)
     
+    # Calculate sector returns: ETF benchmark (standalone) vs Sector aggregate (ETF + stocks)
+    sector_returns = {}
+    for sector_name, v_key in sector_map.items():
+        if v_key in V:
+            etf = V[v_key]
+            if etf in px.columns:
+                # ETF benchmark: standalone ETF price performance (not weighted by portfolio)
+                etf_price_initial = px[etf].iloc[0]
+                if etf_price_initial > 0:
+                    etf_benchmark_returns = (px[etf] / etf_price_initial - 1) * 100
+                else:
+                    etf_benchmark_returns = pd.Series(0.0, index=px.index)
+                
+                # Sector aggregate portfolio: ETF holdings + individual stocks combined
+                etf_value = units[etf] * px[etf] if etf in units.columns else pd.Series(0.0, index=px.index)
+                tickers = df[df['sector'] == sector_name]['ticker'].tolist()
+                stocks_value = pd.Series(0.0, index=px.index)
+                for t in tickers:
+                    if t in units.columns and t in px.columns and t != etf:
+                        stocks_value += units[t] * px[t]
+                
+                # Total sector value (ETF + stocks)
+                sector_aggregate_value = etf_value + stocks_value
+                sector_aggregate_initial = sector_aggregate_value.iloc[0]
+                
+                if sector_aggregate_initial > 0:
+                    sector_aggregate_returns = (sector_aggregate_value / sector_aggregate_initial - 1) * 100
+                else:
+                    sector_aggregate_returns = pd.Series(0.0, index=px.index)
+                
+                sector_returns[sector_name] = {
+                    'ETF_Benchmark': etf_benchmark_returns,  # Standalone ETF
+                    'Sector_Aggregate': sector_aggregate_returns,  # ETF + stocks combined
+                    'ETF_Value': etf_value,
+                    'Stocks_Value': stocks_value,
+                    'Sector_Value': sector_aggregate_value
+                }
+    
+    # Calculate Equity (total portfolio excluding fixed income and cash) vs S&P 500
+    equity_value = portfolio_value - fi_value - cash_val
+    equity_initial = equity_value.iloc[0]
+    if equity_initial > 0:
+        equity_returns = (equity_value / equity_initial - 1) * 100
+    else:
+        equity_returns = pd.Series(0.0, index=px.index)
+    
+    # Calculate YTD returns (from start of current year)
+    current_year = pd.Timestamp.now().year
+    ytd_start = pd.Timestamp(f'{current_year}-01-01')
+    ytd_start_idx = px.index.get_indexer([ytd_start], method='nearest')[0]
+    ytd_start_date = px.index[ytd_start_idx]
+    
+    # YTD sector returns: ETF benchmark vs Sector aggregate
+    sector_ytd_returns = {}
+    for sector_name, returns_data in sector_returns.items():
+        v_key = sector_map.get(sector_name, sector_name)
+        if v_key in V:
+            etf = V[v_key]
+            # ETF benchmark YTD (standalone price)
+            if etf in px.columns:
+                etf_ytd_prices = px[etf].loc[ytd_start_date:]
+                etf_ytd_initial_price = etf_ytd_prices.iloc[0] if len(etf_ytd_prices) > 0 else 0
+                
+                if etf_ytd_initial_price > 0:
+                    etf_ytd_benchmark_returns = (etf_ytd_prices / etf_ytd_initial_price - 1) * 100
+                else:
+                    etf_ytd_benchmark_returns = pd.Series(0.0, index=etf_ytd_prices.index)
+            else:
+                etf_ytd_benchmark_returns = pd.Series(0.0, index=px.index.loc[ytd_start_date:])
+            
+            # Sector aggregate YTD (ETF + stocks combined)
+            sector_ytd_value = returns_data['Sector_Value'].loc[ytd_start_date:]
+            sector_ytd_initial = sector_ytd_value.iloc[0] if len(sector_ytd_value) > 0 else 0
+            
+            if sector_ytd_initial > 0:
+                sector_ytd_aggregate_returns = (sector_ytd_value / sector_ytd_initial - 1) * 100
+            else:
+                sector_ytd_aggregate_returns = pd.Series(0.0, index=sector_ytd_value.index)
+            
+            sector_ytd_returns[sector_name] = {
+                'ETF_Benchmark': etf_ytd_benchmark_returns,
+                'Sector_Aggregate': sector_ytd_aggregate_returns
+            }
+    
+    # YTD Equity vs S&P 500
+    equity_ytd_value = equity_value.loc[ytd_start_date:]
+    benchmark_ytd_value = benchmark_value.loc[ytd_start_date:]
+    
+    equity_ytd_initial = equity_ytd_value.iloc[0] if len(equity_ytd_value) > 0 else 0
+    benchmark_ytd_initial = benchmark_ytd_value.iloc[0] if len(benchmark_ytd_value) > 0 else 0
+    
+    if equity_ytd_initial > 0:
+        equity_ytd_returns = (equity_ytd_value / equity_ytd_initial - 1) * 100
+    else:
+        equity_ytd_returns = pd.Series(0.0, index=equity_ytd_value.index)
+    
+    if benchmark_ytd_initial > 0:
+        benchmark_ytd_returns = (benchmark_ytd_value / benchmark_ytd_initial - 1) * 100
+    else:
+        benchmark_ytd_returns = pd.Series(0.0, index=benchmark_ytd_value.index)
+    
+    # Clean up transaction dates (remove duplicates and sort)
+    cleaned_transaction_dates = {}
+    for sector, dates in transaction_dates_by_sector.items():
+        # Convert to Timestamps, remove duplicates, and sort
+        unique_dates = sorted(set([pd.Timestamp(d) for d in dates]))
+        cleaned_transaction_dates[sector] = unique_dates
+    
+    # Store returns data for GUI (including transaction dates)
+    returns_data = {
+        'sector_returns': sector_returns,
+        'sector_ytd_returns': sector_ytd_returns,
+        'equity_returns': equity_returns,
+        'equity_ytd_returns': equity_ytd_returns,
+        'benchmark_returns': benchmark_cumulative_return,
+        'benchmark_ytd_returns': benchmark_ytd_returns,
+        'equity_value': equity_value,
+        'benchmark_value': benchmark_value,
+        'transaction_dates': cleaned_transaction_dates
+    }
+    
     # Create Plotly figures
     figures = {}
     
@@ -504,4 +803,4 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
     )
     figures['weight_drift'] = fig_weight_drift
     
-    return report_text, figures, summary_df, ytd_df
+    return report_text, figures, summary_df, ytd_df, returns_data

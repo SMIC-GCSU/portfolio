@@ -9,7 +9,7 @@ import os
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QLineEdit, QTextEdit, QDateEdit, QTabWidget,
-    QMessageBox, QFileDialog
+    QMessageBox, QFileDialog, QComboBox
 )
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtCore import Qt, QDate, QUrl, QCoreApplication
@@ -19,7 +19,7 @@ from datetime import datetime
 
 # Import our analysis core
 try:
-    from analysis_core import generate_portfolio_analysis
+    from analysis_core import generate_portfolio_analysis, generate_comparison_plot
 except ImportError:
     print("Error: analysis_core.py not found. Make sure it's in the same directory.")
     sys.exit(1)
@@ -185,6 +185,7 @@ class MainWindow(QMainWindow):
         # Store dataframes for export
         self.summary_df = None
         self.ytd_df = None
+        self.returns_data = None
         self.init_ui()
         
     def init_ui(self):
@@ -201,6 +202,10 @@ class MainWindow(QMainWindow):
         # Tab 2: Analysis & Results
         analysis_tab = self.create_analysis_tab()
         tabs.addTab(analysis_tab, "Analysis & Results")
+        
+        # Tab 3: Returns Comparison
+        comparison_tab = self.create_comparison_tab()
+        tabs.addTab(comparison_tab, "Returns Comparison")
         
         self.setCentralWidget(tabs)
         
@@ -302,6 +307,97 @@ class MainWindow(QMainWindow):
         widget.setLayout(layout)
         return widget
     
+    def create_comparison_tab(self):
+        """Create the returns comparison tab with dropdowns"""
+        widget = QWidget()
+        layout = QVBoxLayout()
+        
+        # Controls section
+        controls_layout = QHBoxLayout()
+        
+        # Comparison Type Dropdown
+        controls_layout.addWidget(QLabel("Comparison Type:"))
+        self.comparison_type_combo = QComboBox()
+        self.comparison_type_combo.addItems(["ETF vs Stocks", "Equity vs S&P 500"])
+        self.comparison_type_combo.currentTextChanged.connect(self.update_comparison_plot)
+        controls_layout.addWidget(self.comparison_type_combo)
+        
+        # Sector Dropdown (only visible for ETF vs Stocks)
+        controls_layout.addWidget(QLabel("Sector:"))
+        self.sector_combo = QComboBox()
+        self.sector_combo.addItems(["Technology", "Healthcare", "Financials", "Consumer_Discretionary",
+                                   "Communication_Services", "Industrials", "Consumer_Staples",
+                                   "Energy", "Materials", "Real_Estate", "Utilities"])
+        self.sector_combo.currentTextChanged.connect(self.update_comparison_plot)
+        controls_layout.addWidget(self.sector_combo)
+        
+        # Period Dropdown
+        controls_layout.addWidget(QLabel("Period:"))
+        self.period_combo = QComboBox()
+        self.period_combo.addItems(["General (Since Beginning)", "YTD (Year to Date)"])
+        self.period_combo.currentTextChanged.connect(self.update_comparison_plot)
+        controls_layout.addWidget(self.period_combo)
+        
+        controls_layout.addStretch()
+        
+        layout.addLayout(controls_layout)
+        
+        # Chart view
+        self.comparison_chart_view = QWebEngineView()
+        self.comparison_chart_view.setMinimumSize(1200, 700)
+        layout.addWidget(self.comparison_chart_view)
+        
+        # Info label
+        info_label = QLabel("Note: Run analysis first to view comparison charts")
+        info_label.setStyleSheet("color: gray; font-style: italic;")
+        layout.addWidget(info_label)
+        
+        widget.setLayout(layout)
+        return widget
+    
+    def update_comparison_plot(self):
+        """Update the comparison plot based on dropdown selections"""
+        if self.returns_data is None:
+            return
+        
+        try:
+            # Get selections
+            comparison_type_text = self.comparison_type_combo.currentText()
+            period_text = self.period_combo.currentText()
+            sector_text = self.sector_combo.currentText()
+            
+            # Map UI text to function parameters
+            if comparison_type_text == "ETF vs Stocks":
+                comparison_type = "ETF_vs_Stocks"
+                sector = sector_text
+            else:  # "Equity vs S&P 500"
+                comparison_type = "Equity_vs_SP500"
+                sector = None
+            
+            if period_text == "General (Since Beginning)":
+                period = "General"
+            else:  # "YTD (Year to Date)"
+                period = "YTD"
+            
+            # Generate plot with transaction dates
+            transaction_dates = self.returns_data.get('transaction_dates', {})
+            fig = generate_comparison_plot(
+                self.returns_data,
+                sector=sector,
+                comparison_type=comparison_type,
+                period=period,
+                transaction_dates=transaction_dates
+            )
+            
+            # Display plot
+            html = fig.to_html(include_plotlyjs='cdn')
+            self.comparison_chart_view.setHtml(html, QUrl())
+            QApplication.processEvents()
+            
+        except Exception as e:
+            QMessageBox.warning(self, "Plot Update Error", 
+                              f"Could not update comparison plot: {str(e)}")
+    
     def run_analysis(self):
         """Run the portfolio analysis"""
         self.status_label.setText("Status: Running analysis...")
@@ -321,13 +417,20 @@ class MainWindow(QMainWindow):
                 return
             
             # Run analysis
-            report_text, figures, summary_df, ytd_df = generate_portfolio_analysis('data/transactions.csv')
+            report_text, figures, summary_df, ytd_df, returns_data = generate_portfolio_analysis('data/transactions.csv')
             
-            # Store dataframes for export
+            # Store dataframes and returns data for export
             self.summary_df = summary_df
             self.ytd_df = ytd_df
+            self.returns_data = returns_data
             self.export_summary_button.setEnabled(True)
             self.export_ytd_button.setEnabled(True)
+            
+            # Update sector dropdown with available sectors
+            if returns_data and 'sector_returns' in returns_data:
+                available_sectors = list(returns_data['sector_returns'].keys())
+                self.sector_combo.clear()
+                self.sector_combo.addItems(available_sectors)
             
             # Display report
             self.report_text.setPlainText(report_text)
@@ -355,6 +458,10 @@ class MainWindow(QMainWindow):
             
             self.status_label.setText("Status: Analysis complete!")
             self.status_label.setStyleSheet("color: green; font-weight: bold;")
+            
+            # Update comparison plot if returns data is available
+            if self.returns_data is not None:
+                self.update_comparison_plot()
             
         except Exception as e:
             error_msg = f"Error running analysis:\n\n{str(e)}"
