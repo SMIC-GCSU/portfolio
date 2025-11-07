@@ -67,10 +67,14 @@ jobs:
           Compress-Archive -Path "release-package\*" -DestinationPath "dist\SMIC_Portfolio_Analysis_windows.zip" -Force
           Write-Host "Created Windows zip with executable and data file"
           # Verify zip contents
-          $zipContents = Expand-Archive -Path "dist\SMIC_Portfolio_Analysis_windows.zip" -DestinationPath "release-package-verify" -Force
-          if (Test-Path "release-package-verify\SMIC_Portfolio_Analysis.exe" -and Test-Path "release-package-verify\data\transactions.csv") {
+          $verifyPath = "release-package-verify"
+          if (Test-Path $verifyPath) {
+            Remove-Item -Recurse -Force $verifyPath
+          }
+          Expand-Archive -Path "dist\SMIC_Portfolio_Analysis_windows.zip" -DestinationPath $verifyPath -Force
+          if (Test-Path "$verifyPath\SMIC_Portfolio_Analysis.exe" -and Test-Path "$verifyPath\data\transactions.csv") {
             Write-Host "✓ Verified: Zip contains executable and data file"
-            Remove-Item -Recurse -Force "release-package-verify"
+            Remove-Item -Recurse -Force $verifyPath
           } else {
             Write-Host "ERROR: Zip verification failed!"
             exit 1
