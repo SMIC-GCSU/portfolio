@@ -34,10 +34,14 @@ def generate_website():
     print("Generating portfolio analysis...")
     report_text, figures, summary_df, ytd_df, returns_data = generate_portfolio_analysis('data/transactions.csv')
     
-    # Generate HTML for each chart
-    charts_html = {}
+    # Convert all main charts to JSON format for client-side rendering
+    charts_data = {}
     for fig_name, fig in figures.items():
-        charts_html[fig_name] = fig.to_html(include_plotlyjs='cdn', div_id=f"plotly-{fig_name}")
+        fig_dict = fig.to_dict()
+        charts_data[fig_name] = json.loads(json.dumps({
+            'data': fig_dict['data'],
+            'layout': fig_dict['layout']
+        }, cls=NumpyEncoder))
     
     # Generate comparison charts for each sector
     comparison_charts_data = {}
@@ -92,24 +96,6 @@ def generate_website():
         'data': fig_dict_equity_ytd['data'],
         'layout': fig_dict_equity_ytd['layout']
     }, cls=NumpyEncoder))
-    
-    # Extract chart HTML content (remove full HTML wrapper, keep just div)
-    def extract_div(html_string):
-        """Extract just the div content from Plotly HTML"""
-        if '<div id=' in html_string:
-            start = html_string.find('<div id=')
-            # Find the matching closing div
-            div_count = 0
-            for i in range(start, len(html_string)):
-                if html_string[i:i+4] == '<div':
-                    div_count += 1
-                elif html_string[i:i+6] == '</div>':
-                    div_count -= 1
-                    if div_count == 0:
-                        return html_string[start:i+6]
-        return html_string
-    
-    charts_divs = {k: extract_div(v) for k, v in charts_html.items()}
     
     # Prepare summary data as JSON
     summary_json = summary_df.to_dict('records')
@@ -308,36 +294,36 @@ def generate_website():
             
             <div class="chart-container">
                 <h3>Portfolio Performance</h3>
-                {charts_divs.get('performance', '')}
+                <div id="chart-performance" style="min-height: 800px;"></div>
             </div>
         </div>
         
         <div id="performance" class="tab-content">
             <div class="chart-container">
                 <h3>Portfolio Value Over Time</h3>
-                {charts_divs.get('performance', '')}
+                <div id="chart-performance-2" style="min-height: 800px;"></div>
             </div>
             
             <div class="chart-container">
                 <h3>Sector Weight Drift</h3>
-                {charts_divs.get('weight_drift', '')}
+                <div id="chart-weight-drift" style="min-height: 600px;"></div>
             </div>
         </div>
         
         <div id="sector-allocation" class="tab-content">
             <div class="chart-container">
                 <h3>Sector Allocation Over Time</h3>
-                {charts_divs.get('sector_allocation', '')}
+                <div id="chart-sector-allocation" style="min-height: 600px;"></div>
             </div>
             
             <div class="chart-container">
                 <h3>ETF vs Individual Stocks Breakdown</h3>
-                {charts_divs.get('etf_vs_stocks', '')}
+                <div id="chart-etf-vs-stocks" style="min-height: 800px;"></div>
             </div>
             
             <div class="chart-container">
                 <h3>Final Allocation: ETF vs Stocks</h3>
-                {charts_divs.get('bar_comparison', '')}
+                <div id="chart-bar-comparison" style="min-height: 600px;"></div>
             </div>
         </div>
         
@@ -436,9 +422,64 @@ def generate_website():
             event.target.classList.add('active');
         }}
         
+        // Main charts data (embedded in page as JSON)
+        const chartsData = {json.dumps(charts_data)};
+        
         // Comparison chart data (embedded in page as JSON)
         const comparisonChartsData = {json.dumps(comparison_charts_data)};
         let currentComparisonChartId = null;
+        
+        // Render main charts on page load
+        function renderMainCharts() {{
+            if (!window.Plotly) {{
+                setTimeout(renderMainCharts, 100);
+                return;
+            }}
+            
+            // Render performance chart
+            if (chartsData.performance) {{
+                Plotly.newPlot('chart-performance', chartsData.performance.data, chartsData.performance.layout, {{
+                    responsive: true,
+                    displayModeBar: true
+                }});
+                Plotly.newPlot('chart-performance-2', chartsData.performance.data, chartsData.performance.layout, {{
+                    responsive: true,
+                    displayModeBar: true
+                }});
+            }}
+            
+            // Render weight drift chart
+            if (chartsData.weight_drift) {{
+                Plotly.newPlot('chart-weight-drift', chartsData.weight_drift.data, chartsData.weight_drift.layout, {{
+                    responsive: true,
+                    displayModeBar: true
+                }});
+            }}
+            
+            // Render sector allocation chart
+            if (chartsData.sector_allocation) {{
+                Plotly.newPlot('chart-sector-allocation', chartsData.sector_allocation.data, chartsData.sector_allocation.layout, {{
+                    responsive: true,
+                    displayModeBar: true
+                }});
+            }}
+            
+            // Render ETF vs stocks chart
+            if (chartsData.etf_vs_stocks) {{
+                Plotly.newPlot('chart-etf-vs-stocks', chartsData.etf_vs_stocks.data, chartsData.etf_vs_stocks.layout, {{
+                    responsive: true,
+                    displayModeBar: true
+                }});
+            }}
+            
+            // Render bar comparison chart
+            if (chartsData.bar_comparison) {{
+                Plotly.newPlot('chart-bar-comparison', chartsData.bar_comparison.data, chartsData.bar_comparison.layout, {{
+                    responsive: true,
+                    displayModeBar: true
+                }});
+            }}
+        }}
         
         function updateComparisonChart() {{
             const comparisonType = document.getElementById('comparison-type').value;
@@ -492,7 +533,10 @@ def generate_website():
         
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {{
-            // Wait for Plotly to load
+            // Render all main charts
+            renderMainCharts();
+            
+            // Initialize comparison chart
             if (window.Plotly) {{
                 updateComparisonChart();
             }} else {{
@@ -514,7 +558,7 @@ def generate_website():
         f.write(html_content)
     
     print(f"✓ Website generated: {index_path}")
-    print(f"✓ Charts embedded: {len(charts_divs)} main charts")
+    print(f"✓ Charts embedded: {len(charts_data)} main charts")
     print(f"✓ Comparison charts: {len(comparison_charts_data)} sector comparisons")
     
     return index_path
