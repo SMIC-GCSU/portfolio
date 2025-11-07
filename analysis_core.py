@@ -251,6 +251,22 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
         ytd_df (pd.DataFrame): YTD sector breakdown
     """
     
+    # Handle data path for both development and PyInstaller executable
+    import sys
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable
+        base_path = sys._MEIPASS
+        if not os.path.exists(os.path.join(base_path, transactions_file)):
+            # Try relative to executable location
+            exe_dir = os.path.dirname(sys.executable)
+            transactions_file = os.path.join(exe_dir, transactions_file)
+    else:
+        # Running as script
+        if not os.path.exists(transactions_file):
+            # Try absolute path
+            base_path = os.path.dirname(os.path.abspath(__file__))
+            transactions_file = os.path.join(base_path, transactions_file)
+    
     # Load data
     try:
         df = pd.read_csv(transactions_file, parse_dates=['invest_date'])

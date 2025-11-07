@@ -5,9 +5,15 @@ import os
 import sys
 
 # Ensure data directory and transaction.csv are included
-datas = [('data', 'data')]
-if os.path.exists('data/transactions.csv'):
-    datas.append(('data/transactions.csv', 'data'))
+# Get the absolute path to ensure data is found
+base_path = os.path.abspath('.')
+data_path = os.path.join(base_path, 'data')
+datas = []
+if os.path.exists(data_path):
+    datas.append((data_path, 'data'))
+# Explicitly include transactions.csv
+if os.path.exists(os.path.join(data_path, 'transactions.csv')):
+    datas.append((os.path.join(data_path, 'transactions.csv'), 'data'))
 
 binaries = []
 hiddenimports = ['PySide6.QtWebEngineWidgets', 'plotly.graph_objects', 'plotly.subplots', 'pandas', 'yfinance', 'numpy', 'plotly']
