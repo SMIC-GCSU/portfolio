@@ -108,24 +108,30 @@ def generate_comparison_plot(returns_data: Dict, sector: str = None, comparison_
         
         # Calculate excess returns (active returns)
         excess_returns = portfolio_returns - benchmark_returns
-        final_excess = excess_returns.iloc[-1] if len(excess_returns) > 0 else 0
+        final_excess = round(excess_returns.iloc[-1], 2) if len(excess_returns) > 0 else 0
+        
+        # Round returns to 2 decimal places
+        benchmark_returns_rounded = benchmark_returns.round(2)
+        portfolio_returns_rounded = portfolio_returns.round(2)
         
         # Plot benchmark (ETF)
         fig.add_trace(go.Scatter(
             x=benchmark_returns.index,
-            y=benchmark_returns.values,
+            y=benchmark_returns_rounded.values,
             name=f'{sector} ETF (Benchmark)',
             line=dict(color='#2E86AB', width=2, dash='dash'),
-            mode='lines'
+            mode='lines',
+            hovertemplate='%{y:.2f}%<extra></extra>'
         ))
         
         # Plot portfolio (Sector Aggregate: ETF + stocks)
         fig.add_trace(go.Scatter(
             x=portfolio_returns.index,
-            y=portfolio_returns.values,
+            y=portfolio_returns_rounded.values,
             name=f'{sector} Sector Aggregate (Portfolio) | Excess: {final_excess:.2f}%',
             line=dict(color='#F18F01', width=3),
-            mode='lines'
+            mode='lines',
+            hovertemplate='%{y:.2f}%<extra></extra>'
         ))
         
         # Mark entry points for this sector
@@ -170,24 +176,30 @@ def generate_comparison_plot(returns_data: Dict, sector: str = None, comparison_
         
         # Calculate excess returns (active returns)
         excess_returns = portfolio_returns - benchmark_returns
-        final_excess = excess_returns.iloc[-1] if len(excess_returns) > 0 else 0
+        final_excess = round(excess_returns.iloc[-1], 2) if len(excess_returns) > 0 else 0
+        
+        # Round returns to 2 decimal places
+        benchmark_returns_rounded = benchmark_returns.round(2)
+        portfolio_returns_rounded = portfolio_returns.round(2)
         
         # Plot benchmark (S&P 500)
         fig.add_trace(go.Scatter(
             x=benchmark_returns.index,
-            y=benchmark_returns.values,
+            y=benchmark_returns_rounded.values,
             name='S&P 500 (Benchmark)',
             line=dict(color='#d62728', width=2, dash='dash'),
-            mode='lines'
+            mode='lines',
+            hovertemplate='%{y:.2f}%<extra></extra>'
         ))
         
         # Plot portfolio (Equity)
         fig.add_trace(go.Scatter(
             x=portfolio_returns.index,
-            y=portfolio_returns.values,
+            y=portfolio_returns_rounded.values,
             name=f'Equity Portfolio | Excess: {final_excess:.2f}%',
             line=dict(color='#1f77b4', width=3),
-            mode='lines'
+            mode='lines',
+            hovertemplate='%{y:.2f}%<extra></extra>'
         ))
         
         # Mark all entry points across all sectors
@@ -221,7 +233,8 @@ def generate_comparison_plot(returns_data: Dict, sector: str = None, comparison_
         yaxis_title='Cumulative Return (%)',
         hovermode='x unified',
         height=600,
-        showlegend=True
+        showlegend=True,
+        yaxis=dict(tickformat='.2f')
     )
     
     return fig
@@ -519,7 +532,7 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
     
     report_text = "\n".join(report_lines)
     
-    # Create summary DataFrame
+    # Create summary DataFrame with proper formatting
     summary_data = {
         'Metric': [
             'Initial Portfolio Value', 'Final Portfolio Value', 'Absolute Change', 'Total Return (%)',
@@ -528,10 +541,10 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
             'Max Drawdown (%)', 'Peak Value', 'Lowest Value'
         ],
         'Value': [
-            initial, final, absolute_change, total_return,
-            benchmark_initial, benchmark_final, benchmark_absolute_change, benchmark_total_return,
-            cagr, benchmark_cagr, cagr - benchmark_cagr,
-            max_drawdown, max_value, min_value
+            f'${initial:,.2f}', f'${final:,.2f}', f'${absolute_change:,.2f}', f'{total_return:.2f}',
+            f'${benchmark_initial:,.2f}', f'${benchmark_final:,.2f}', f'${benchmark_absolute_change:,.2f}', f'{benchmark_total_return:.2f}',
+            f'{cagr:.2f}', f'{benchmark_cagr:.2f}', f'{cagr - benchmark_cagr:.2f}',
+            f'{max_drawdown:.2f}', f'${max_value:,.2f}', f'${min_value:,.2f}'
         ]
     }
     summary_df = pd.DataFrame(summary_data)
@@ -663,14 +676,17 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
     # 1. Sector Allocation (Stacked Area Chart)
     fig_sector = go.Figure()
     for col in weights.columns:
+        # Round weights to 2 decimal places
+        rounded_weights = weights[col].round(2)
         fig_sector.add_trace(go.Scatter(
             x=weights.index,
-            y=weights[col],
+            y=rounded_weights,
             name=col,
             stackgroup='one',
             fillcolor=SECTOR_COLORS.get(col, '#808080'),
             mode='lines',
-            line=dict(width=0.5, color=SECTOR_COLORS.get(col, '#808080'))
+            line=dict(width=0.5, color=SECTOR_COLORS.get(col, '#808080')),
+            hovertemplate='%{y:.2f}%<extra></extra>'
         ))
     fig_sector.update_layout(
         title='Sector Allocation',
@@ -678,7 +694,8 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
         yaxis_title='Weight (%)',
         hovermode='x unified',
         height=600,
-        showlegend=True
+        showlegend=True,
+        yaxis=dict(tickformat='.2f')
     )
     figures['sector_allocation'] = fig_sector
     
@@ -690,33 +707,42 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
         shared_xaxes=True
     )
     
-    # Portfolio Value
+    # Portfolio Value - round to 2 decimal places
+    portfolio_value_rounded = portfolio_value.round(2)
+    benchmark_value_rounded = benchmark_value.round(2)
+    portfolio_cumulative_return_rounded = portfolio_cumulative_return.round(2)
+    benchmark_cumulative_return_rounded = benchmark_cumulative_return.round(2)
+    
     fig_performance.add_trace(
-        go.Scatter(x=portfolio_value.index, y=portfolio_value.values, name='SMIC Portfolio',
-                  line=dict(color='#1f77b4', width=3)),
+        go.Scatter(x=portfolio_value.index, y=portfolio_value_rounded.values, name='SMIC Portfolio',
+                  line=dict(color='#1f77b4', width=3),
+                  hovertemplate='$%{y:,.2f}<extra></extra>'),
         row=1, col=1
     )
     fig_performance.add_trace(
-        go.Scatter(x=benchmark_value.index, y=benchmark_value.values, name='S&P 500',
-                  line=dict(color='#d62728', width=3, dash='dash')),
+        go.Scatter(x=benchmark_value.index, y=benchmark_value_rounded.values, name='S&P 500',
+                  line=dict(color='#d62728', width=3, dash='dash'),
+                  hovertemplate='$%{y:,.2f}<extra></extra>'),
         row=1, col=1
     )
     
     # Cumulative Returns
     fig_performance.add_trace(
-        go.Scatter(x=portfolio_cumulative_return.index, y=portfolio_cumulative_return.values,
-                  name='SMIC Portfolio', line=dict(color='#1f77b4', width=3)),
+        go.Scatter(x=portfolio_cumulative_return.index, y=portfolio_cumulative_return_rounded.values,
+                  name='SMIC Portfolio', line=dict(color='#1f77b4', width=3),
+                  hovertemplate='%{y:.2f}%<extra></extra>'),
         row=2, col=1
     )
     fig_performance.add_trace(
-        go.Scatter(x=benchmark_cumulative_return.index, y=benchmark_cumulative_return.values,
-                  name='S&P 500', line=dict(color='#d62728', width=3, dash='dash')),
+        go.Scatter(x=benchmark_cumulative_return.index, y=benchmark_cumulative_return_rounded.values,
+                  name='S&P 500', line=dict(color='#d62728', width=3, dash='dash'),
+                  hovertemplate='%{y:.2f}%<extra></extra>'),
         row=2, col=1
     )
     
     fig_performance.update_xaxes(title_text="Date", row=2, col=1)
-    fig_performance.update_yaxes(title_text="USD", row=1, col=1)
-    fig_performance.update_yaxes(title_text="Return (%)", row=2, col=1)
+    fig_performance.update_yaxes(title_text="USD", row=1, col=1, tickformat='$,.2f')
+    fig_performance.update_yaxes(title_text="Return (%)", row=2, col=1, tickformat='.2f')
     fig_performance.update_layout(height=800, showlegend=True, hovermode='x unified')
     figures['performance'] = fig_performance
     
@@ -733,10 +759,12 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
     etf_df = sector_etf_stocks[etf_cols].copy()
     etf_df.columns = [col.replace('_ETF', '') for col in etf_df.columns]
     for col in etf_df.columns:
+        rounded_etf = etf_df[col].round(2)
         fig_etf_vs_stocks.add_trace(go.Scatter(
-            x=etf_df.index, y=etf_df[col], name=col,
+            x=etf_df.index, y=rounded_etf, name=col,
             stackgroup='one', fillcolor=SECTOR_COLORS.get(col, '#808080'),
-            mode='lines', line=dict(width=0.5, color=SECTOR_COLORS.get(col, '#808080'))
+            mode='lines', line=dict(width=0.5, color=SECTOR_COLORS.get(col, '#808080')),
+            hovertemplate='%{y:.2f}%<extra></extra>'
         ), row=1, col=1)
     
     # Bottom panel: Individual Stocks weights
@@ -744,33 +772,38 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
     stocks_df = sector_etf_stocks[stocks_cols].copy()
     stocks_df.columns = [col.replace('_Stocks', '') for col in stocks_df.columns]
     for col in stocks_df.columns:
+        rounded_stocks = stocks_df[col].round(2)
         fig_etf_vs_stocks.add_trace(go.Scatter(
-            x=stocks_df.index, y=stocks_df[col], name=col,
+            x=stocks_df.index, y=rounded_stocks, name=col,
             stackgroup='two', fillcolor=SECTOR_COLORS.get(col, '#808080'),
-            mode='lines', line=dict(width=0.5, color=SECTOR_COLORS.get(col, '#808080'))
+            mode='lines', line=dict(width=0.5, color=SECTOR_COLORS.get(col, '#808080')),
+            hovertemplate='%{y:.2f}%<extra></extra>'
         ), row=2, col=1)
     
     fig_etf_vs_stocks.update_xaxes(title_text="Date", row=2, col=1)
-    fig_etf_vs_stocks.update_yaxes(title_text="Weight (%)", row=1, col=1)
-    fig_etf_vs_stocks.update_yaxes(title_text="Weight (%)", row=2, col=1)
+    fig_etf_vs_stocks.update_yaxes(title_text="Weight (%)", row=1, col=1, tickformat='.2f')
+    fig_etf_vs_stocks.update_yaxes(title_text="Weight (%)", row=2, col=1, tickformat='.2f')
     fig_etf_vs_stocks.update_layout(height=800, showlegend=True, hovermode='x unified')
     figures['etf_vs_stocks'] = fig_etf_vs_stocks
     
     # 4. ETF vs Stocks (Grouped Bar Chart)
     sectors = ytd_df['Sector'].tolist()
-    etf_ends = ytd_df['ETF_Weight_End (%)'].tolist()
-    stocks_ends = ytd_df['Stocks_Weight_End (%)'].tolist()
+    etf_ends = [round(x, 2) for x in ytd_df['ETF_Weight_End (%)'].tolist()]
+    stocks_ends = [round(x, 2) for x in ytd_df['Stocks_Weight_End (%)'].tolist()]
     
     fig_bar_comparison = go.Figure(data=[
-        go.Bar(name='ETF', x=sectors, y=etf_ends, marker_color='#2E86AB'),
-        go.Bar(name='Individual Stocks', x=sectors, y=stocks_ends, marker_color='#F18F01')
+        go.Bar(name='ETF', x=sectors, y=etf_ends, marker_color='#2E86AB',
+               hovertemplate='%{y:.2f}%<extra></extra>'),
+        go.Bar(name='Individual Stocks', x=sectors, y=stocks_ends, marker_color='#F18F01',
+               hovertemplate='%{y:.2f}%<extra></extra>')
     ])
     fig_bar_comparison.update_layout(
         title='Sector Allocation: ETF vs Individual Stocks (End of Period)',
         xaxis_title='Sector',
         yaxis_title='Weight (%)',
         barmode='group',
-        height=600
+        height=600,
+        yaxis=dict(tickformat='.2f')
     )
     figures['bar_comparison'] = fig_bar_comparison
     
@@ -786,12 +819,14 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
     for col in weight_drift.columns:
         max_drift = abs(weight_drift[col]).max()
         if max_drift > 0.5: # Only plot meaningful drift
+            rounded_drift = weight_drift[col].round(2)
             fig_weight_drift.add_trace(go.Scatter(
                 x=weight_drift.index,
-                y=weight_drift[col],
+                y=rounded_drift,
                 name=col,
                 mode='lines',
-                line=dict(width=2.5, color=SECTOR_COLORS.get(col, '#808080'))
+                line=dict(width=2.5, color=SECTOR_COLORS.get(col, '#808080')),
+                hovertemplate='%{y:.2f}%<extra></extra>'
             ))
             
     fig_weight_drift.update_layout(
@@ -799,7 +834,8 @@ def generate_portfolio_analysis(transactions_file: str = 'data/transactions.csv'
         xaxis_title='Date',
         yaxis_title='Weight Change (%)',
         hovermode='x unified',
-        height=600
+        height=600,
+        yaxis=dict(tickformat='.2f')
     )
     figures['weight_drift'] = fig_weight_drift
     

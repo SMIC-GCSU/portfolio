@@ -119,144 +119,163 @@ def generate_website():
             box-sizing: border-box;
         }}
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: #333;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            color: #1a1a1a;
             line-height: 1.6;
+            margin: 0;
+            padding: 0;
         }}
         .container {{
             max-width: 1400px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 40px 20px;
         }}
         header {{
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
+            background: #ffffff;
+            padding: 40px;
             margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-bottom: 1px solid #e1e8ed;
         }}
         h1 {{
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 2.5em;
+            color: #1a1a1a;
+            margin: 0 0 8px 0;
+            font-size: 2em;
+            font-weight: 600;
+            letter-spacing: -0.5px;
         }}
         .subtitle {{
-            color: #666;
-            font-size: 1.1em;
+            color: #657786;
+            font-size: 1em;
+            margin: 0;
+            font-weight: 400;
         }}
         .last-updated {{
-            color: #999;
-            font-size: 0.9em;
-            margin-top: 10px;
+            color: #aab8c2;
+            font-size: 0.85em;
+            margin-top: 12px;
         }}
         .tabs {{
             display: flex;
-            background: white;
-            border-radius: 10px 10px 0 0;
+            background: #ffffff;
+            border-bottom: 1px solid #e1e8ed;
             overflow-x: auto;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }}
         .tab {{
-            padding: 15px 30px;
+            padding: 16px 24px;
             cursor: pointer;
             border: none;
-            background: white;
-            font-size: 1em;
-            font-weight: 600;
-            color: #666;
-            transition: all 0.3s;
-            border-bottom: 3px solid transparent;
+            background: transparent;
+            font-size: 0.95em;
+            font-weight: 500;
+            color: #657786;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
         }}
         .tab:hover {{
-            background: #f5f5f5;
-            color: #667eea;
+            color: #1a1a1a;
+            background: #f7f9fa;
         }}
         .tab.active {{
-            color: #667eea;
-            border-bottom: 3px solid #667eea;
+            color: #1a1a1a;
+            border-bottom: 2px solid #1a1a1a;
         }}
         .tab-content {{
             display: none;
-            background: white;
-            padding: 30px;
-            border-radius: 0 0 10px 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: #ffffff;
+            padding: 40px;
             margin-bottom: 30px;
+            border: 1px solid #e1e8ed;
+            border-top: none;
         }}
         .tab-content.active {{
             display: block;
         }}
         .chart-container {{
             margin: 30px 0;
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            background: #ffffff;
+            padding: 0;
         }}
         .chart-container h3 {{
-            margin-bottom: 15px;
-            color: #333;
-            font-size: 1.5em;
+            margin: 0 0 20px 0;
+            color: #1a1a1a;
+            font-size: 1.25em;
+            font-weight: 600;
         }}
         .report-box {{
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            font-family: 'Courier New', monospace;
+            background: #f7f9fa;
+            padding: 24px;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
             white-space: pre-wrap;
             margin: 20px 0;
-            border-left: 4px solid #667eea;
+            border: 1px solid #e1e8ed;
+            font-size: 0.9em;
+            line-height: 1.8;
+            color: #1a1a1a;
         }}
         .summary-table {{
             width: 100%;
             border-collapse: collapse;
             margin: 20px 0;
+            font-size: 0.95em;
         }}
         .summary-table th, .summary-table td {{
-            padding: 12px;
+            padding: 14px 16px;
             text-align: left;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid #e1e8ed;
         }}
         .summary-table th {{
-            background: #667eea;
-            color: white;
+            background: #f7f9fa;
+            color: #1a1a1a;
             font-weight: 600;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }}
         .summary-table tr:hover {{
-            background: #f5f5f5;
+            background: #f7f9fa;
+        }}
+        .summary-table td {{
+            color: #657786;
         }}
         .comparison-controls {{
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            background: #f7f9fa;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #e1e8ed;
         }}
         .control-group {{
-            margin: 15px 0;
+            margin: 16px 0;
+            display: flex;
+            align-items: center;
         }}
         .control-group label {{
             display: inline-block;
-            width: 150px;
-            font-weight: 600;
-            color: #333;
+            width: 140px;
+            font-weight: 500;
+            color: #1a1a1a;
+            font-size: 0.95em;
         }}
         .control-group select {{
-            padding: 8px 15px;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 1em;
-            min-width: 250px;
+            padding: 10px 16px;
+            border: 1px solid #e1e8ed;
+            background: #ffffff;
+            font-size: 0.95em;
+            min-width: 280px;
+            color: #1a1a1a;
+            cursor: pointer;
         }}
         .control-group select:focus {{
             outline: none;
-            border-color: #667eea;
+            border-color: #1a1a1a;
         }}
         footer {{
             text-align: center;
-            padding: 30px;
-            color: white;
-            margin-top: 50px;
+            padding: 40px 20px;
+            color: #657786;
+            margin-top: 60px;
+            font-size: 0.9em;
         }}
         @media (max-width: 768px) {{
             .container {{
